@@ -23,11 +23,11 @@ changelog:
     exclude:
       - '^docs:'
       - '^test:'
-brews:
-  - name: resy
-    description: A CLI to easily schedule restaurant reservations in advance.
-    homepage: https://github.com/bcillie/resy-cli
-    tap:
-      owner: bcillie
-      name: homebrew-bcillie
+# brews:
+#   - name: resy
+#     description: A CLI to easily schedule restaurant reservations in advance.
+#     homepage: https://github.com/bcillie/resy-cli
+#     tap:
+#       owner: bcillie
+#       name: homebrew-bcillie
 # yaml-language-server: $schema=https://goreleaser.com/static/schema.json

@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/bcillie/resy-cli/internal/api"
 	"github.com/bcillie/resy-cli/internal/book"
 	"github.com/bcillie/resy-cli/internal/utils/date"
 )
@@ -19,18 +20,18 @@ func Add(s string) error {
 	return schedule(inputs)
 }
 
-func getBookingDateTime(inputs *surveyInputs) (*time.Time, error) {
-	res, err := book.FetchVenueDetails(inputs.Venue.Id)
+func getBookingDateTime(inputs *surveyInputs) (*date.ResyDate, error) {
+	res, err := api.GetConfig(int32(inputs.Venue.Id))
 	if err != nil {
 		return nil, err
 	}
 
-	slotTime, err := date.ParseTime(inputs.SlotTime)
+	slotTime, err := date.NewResyDate(inputs.SlotTime, "15:04")
 	if err != nil {
 		return nil, err
 	}
 
-	reservationDate, err := date.ParseDate(inputs.ReservationDate)
+	reservationDate, err := date.NewResyDate(inputs.ReservationDate, time.DateOnly)
 	if err != nil {
 		return nil, err
 	}
@@ -42,9 +43,9 @@ func schedule(inputs *surveyInputs) error {
 	types := strings.Split(inputs.ReservationTypes, "\n")
 	_times := strings.Split(inputs.ReservationTimes, "\n")
 	times := make([]string, len(_times))
-	for i, time := range _times {
-		foo, _ := date.ParseTime(time)
-		times[i] = date.ToTimeString(foo)
+	for i, t := range _times {
+		foo, _ := date.ParseTime(t)
+		times[i] = foo.Format(time.TimeOnly)
 	}
 
 	bookingDateTime, err := getBookingDateTime(inputs)
@@ -56,14 +57,14 @@ func schedule(inputs *surveyInputs) error {
 		ReservationDate:  inputs.ReservationDate,
 		ReservationTimes: times,
 		ReservationTypes: types,
-		BookingDateTime:  date.ToDateTimeString(bookingDateTime),
+		BookingDateTime:  bookingDateTime.String(),
 		PartySize:        inputs.PartySize,
-		VenueId:          inputs.Venue.Id,
+		VenueId:          fmt.Sprintf("%d", inputs.Venue.Id),
 	}, inputs.DryRun)
 
 	jobStartTime := bookingDateTime.Add(-time.Minute) // Job should execute slightly before desired book time (at is not terribly reliable here)
 
-	atCmd := fmt.Sprintf("at %s", date.ToAtString(&jobStartTime))
+	atCmd := fmt.Sprintf("at %s", jobStartTime.Format(date.AtFmt))
 	cmd := fmt.Sprintf("echo \"%s\" | %s", bookCmd, atCmd)
 	_, err = exec.Command("sh", "-c", cmd).Output()
 
